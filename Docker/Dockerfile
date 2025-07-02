@@ -5,8 +5,8 @@ FROM postgres:15-alpine
 COPY ./initdb/ /docker-entrypoint-initdb.d/
 
 # 3) Устанавливаем дефолтные переменные, которые при необходимости переопределяются из внешнего .env
-ENV POSTGRES_USER=app_user \
-    POSTGRES_PASSWORD=strong_password \
+ENV POSTGRES_USER=user \
+    POSTGRES_PASSWORD=password \
     POSTGRES_DB=app_db
 
 # 4) Открываем порт  
