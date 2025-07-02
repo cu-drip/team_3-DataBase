@@ -1,0 +1,84 @@
+version: "3.9"
+
+services:
+  # Postgres DB 
+  teams-db:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: teams-db
+    env_file: data.env                 # POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - teams-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+
+  # Flyway Migrator 
+  db-migrator:
+    image: flyway/flyway:10
+    container_name: db-migrator
+    env_file: data.env                 # ENGINE_DB_USER, ENGINE_DB_PASS, DB_HOST, DB_PORT, POSTGRES_DB
+    depends_on:
+      - teams-db
+    volumes:
+      - ./db/migration:/flyway/sql:ro   # ваши V*.sql миграции
+    command: >
+      -url=jdbc:postgresql://${DB_HOST}:${DB_PORT}/${POSTGRES_DB}
+      -user=${ENGINE_DB_USER}
+      -password=${ENGINE_DB_PASS}
+      migrate
+    networks:
+      - teams-net
+    restart: "no"
+
+  # Engine 
+  engine:
+    image: yourorg/engine:latest
+    container_name: engine
+    env_file: data.env                 # DB_HOST, DB_PORT, POSTGRES_DB, ENGINE_DB_USER, ENGINE_DB_PASS
+    depends_on:
+      - teams-db
+      - db-migrator
+    networks:
+      - teams-net
+
+  # Readers 
+  ui-service:
+    image: yourorg/ui-service:latest
+    container_name: ui-service
+    env_file: data.env                 # DB_HOST, DB_PORT, POSTGRES_DB, READER_DB_USER, READER_DB_PASS
+    depends_on:
+      - teams-db
+    networks:
+      - teams-net
+
+  user-service:
+    image: yourorg/user-service:latest
+    container_name: user-service
+    env_file: data.env
+    depends_on:
+      - teams-db
+    networks:
+      - teams-net
+
+  swift-client:
+    image: yourorg/swift-client:latest
+    container_name: swift-client
+    env_file: data.env
+    depends_on:
+      - teams-db
+    networks:
+      - teams-net
+
+volumes:
+  pgdata:
+
+networks:
+  teams-net:
+    driver: bridge
