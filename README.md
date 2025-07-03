@@ -2,5 +2,5 @@
 
 ---
 
-### User](https://dbdiagram.io/d/686641f0f413ba350815273d)
+### (https://dbdiagram.io/d/686641f0f413ba350815273d)
 
