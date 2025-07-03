@@ -1,0 +1,55 @@
+services:
+  # ────────── Postgres ──────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: sport-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       sport
+      POSTGRES_USER:     user          # ← везде user / password
+      POSTGRES_PASSWORD: password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init/01_roles.sql:/docker-entrypoint-initdb.d/01_roles.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d sport"]
+      interval: 10s
+      retries: 5
+
+  # ────────── Flyway (job) ──────────
+  flyway:
+    image: flyway/flyway:10-alpine
+    container_name: flyway-migrator
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./db/migration:/flyway/sql:ro
+    environment:
+      FLYWAY_URL:      jdbc:postgresql://postgres:5432/sport
+      FLYWAY_USER:     user
+      FLYWAY_PASSWORD: password
+    command: migrate
+    restart: "no"
+
+  # ────────── Java-микросервис ──────────
+  svc-user:
+    container_name: svc-user
+    build:
+      context: ../svc-user          # из infra/ подняться на уровень выше
+    depends_on:
+      flyway:
+        condition: service_completed_successfully
+    environment:
+      SPRING_DATASOURCE_URL:      jdbc:postgresql://postgres:5432/sport
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8080/api/db-check || exit 1"]
+      interval: 30s
+      retries: 5
+
+volumes:
+  pgdata:
