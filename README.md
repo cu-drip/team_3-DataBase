@@ -106,6 +106,7 @@ PRIMARY KEY(tournament_id, participant_id)
 ### Matches
 ```text
 match_id: UUID PRIMARY KEY
+tournament_id:: UUID
 started_at: timestamp
 created_at: timestamp
 position: int
@@ -114,5 +115,6 @@ partition2_id: UUID
 partition1_points: int
 partition2_points: int
 winner_id: UUID
+(FK → Tournament.id)
 ```
 
