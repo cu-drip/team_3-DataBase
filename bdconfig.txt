@@ -1,0 +1,160 @@
+// DBML generated for the requested schema
+// Paste this into https://dbdiagram.io/ or any DBML-aware tool
+
+// ---------- ENUMS ----------
+Enum sex {
+  male
+  female
+  other
+}
+
+Enum sport {
+  football
+  boxing
+  basketball
+  chess
+  tennis
+  jiu_jitsu
+}
+
+Enum type_tournament {
+  solo
+  team
+}
+
+Enum type_group {
+  olympic
+  swiss
+  round_robin
+}
+
+Enum participant_type {
+  solo
+  team
+}
+
+Enum registration_status {
+  pending
+  accepted
+  rejected
+}
+
+// ---------- TABLES ----------
+Table users {
+  id               uuid       [pk]
+  name             varchar
+  surname          varchar
+  patronymic       varchar           // optional
+  phone_number     varchar
+  email            varchar           // optional
+  hashed_password  varchar
+  is_admin         boolean
+  date_of_birth    date              // optional
+  age              int               // optional
+  sex              sex               // optional
+  weight           float             // optional
+  height           float             // optional
+  created_at       timestamp
+  bio              text              // optional — short player bio
+  avatar_url       varchar           // optional
+}
+
+Table user_sport_mmr_relation {
+  user_id  uuid     [not null]
+  sport    sport    [not null]
+  mmr      double
+
+  Indexes {
+    (user_id, sport) [pk]
+  }
+}
+
+Table teams {
+  id          uuid    [pk]
+  name        varchar
+  created_at  timestamp
+  avatar      varchar
+}
+
+Table team_player_relation {
+  team_id  uuid [not null]
+  user_id  uuid [not null]
+
+  Indexes {
+    (team_id, user_id) [pk]
+  }
+}
+
+Table team_mmr_relation {
+  team_id  uuid   [not null]
+  mmr      double
+
+  Indexes {
+    (team_id) [pk]
+  }
+}
+
+Table tournaments {
+  id                    uuid   [pk]
+  title                 varchar
+  description           text
+  sport                 sport
+  type_tournament       type_tournament
+  type_group            type_group
+  matches_number        int
+  start_time            timestamp
+  created_at            timestamp
+  entry_cost            decimal
+  max_participants      int
+  registration_deadline timestamp
+  place                 varchar
+  organizer_id          uuid
+}
+
+Table tournament_registrations {
+  tournament_id     uuid            [not null]
+  sport             sport
+  participant_id    uuid            // user_id OR team_id
+  participant_type  participant_type
+  registered_at     timestamp
+  status            registration_status
+
+  Indexes {
+    (tournament_id, participant_id) [pk]
+  }
+}
+
+Table matches {
+  match_id             uuid       [pk]    
+  started_at           timestamp
+  created_at           timestamp
+  position             int
+  partition1_id        uuid       // user or team
+  partition2_id        uuid       // user or team
+  partition1_points    int
+  partition2_points    int
+  winner_id            uuid       // user or team
+}
+
+// ---------- RELATIONSHIPS ----------
+
+// users
+Ref: user_sport_mmr_relation.user_id > users.id
+Ref: team_player_relation.user_id    > users.id
+Ref: tournaments.organizer_id        > users.id
+Ref: tournament_registrations.participant_id > users.id  // when participant_type = 'solo'
+Ref: matches.partition1_id > users.id                     // optional solo participant
+Ref: matches.partition2_id > users.id
+Ref: matches.winner_id     > users.id
+
+// teams
+Ref: team_player_relation.team_id  > teams.id
+Ref: team_mmr_relation.team_id     > teams.id
+Ref: tournament_registrations.participant_id > teams.id  // when participant_type = 'team'
+Ref: matches.partition1_id > teams.id                    // optional team participant
+Ref: matches.partition2_id > teams.id
+Ref: matches.winner_id     > teams.id
+
+// tournaments
+Ref: tournament_registrations.tournament_id > tournaments.id
+
