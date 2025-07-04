@@ -107,6 +107,7 @@ PRIMARY KEY(tournament_id, participant_id)
 ```text
 match_id: UUID PRIMARY KEY
 tournament_id:: UUID
+match_id: UUID
 started_at: timestamp
 created_at: timestamp
 position: int
